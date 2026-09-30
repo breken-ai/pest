@@ -22,7 +22,6 @@ macro_rules! box_tree {
 
 mod concatenator;
 mod factorizer;
-mod lister;
 mod restorer;
 mod rotator;
 mod skipper;
@@ -38,7 +37,6 @@ pub fn optimize(rules: Vec<Rule>) -> Vec<OptimizedRule> {
         .map(unroller::unroll)
         .map(concatenator::concatenate)
         .map(factorizer::factor)
-        .map(lister::list)
         .map(rule_to_optimized_rule)
         .collect();
 
@@ -718,7 +716,10 @@ mod tests {
     }
 
     #[test]
-    fn lister() {
+    fn repetition_followed_by_its_first_element_is_kept() {
+        // `(a ~ b)* ~ a` is not equivalent to `a ~ (b ~ a)*`: the repetition is
+        // greedy, so after consuming `a ~ b` it never gives it back for the
+        // trailing `a`, while the rewritten form would still succeed.
         let rules = {
             use crate::ast::Expr::*;
             vec![Rule {
@@ -736,8 +737,8 @@ mod tests {
                 name: "rule".to_owned(),
                 ty: RuleType::Silent,
                 expr: box_tree!(Seq(
-                    Ident(String::from("a")),
-                    Rep(Seq(Ident(String::from("b")), Ident(String::from("a"))))
+                    Rep(Seq(Ident(String::from("a")), Ident(String::from("b")))),
+                    Ident(String::from("a"))
                 )),
             }]
         };
